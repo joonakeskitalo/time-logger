@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Work Timer</title>
+
+    <style>
+      body {
+        background-color: #f7f7f7;
+      }
+      .content-container {
+        font-family: Inter;
+        display: flex;
+        justify-content: center;
+
+        button {
+          align-items: center;
+          appearance: button;
+          background-color: #0276ff;
+
+          border-radius: 8px;
+          border-style: none;
+          box-shadow: rgba(255, 255, 255, 0.26) 0 1px 2px inset;
+          box-sizing: border-box;
+          color: #fff;
+          cursor: pointer;
+          font-size: 100%;
+          line-height: 1.15;
+          margin: 0;
+          padding: 8px 18px;
+          text-align: center;
+          text-transform: none;
+          transition: color 0.13s ease-in-out, background 0.13s ease-in-out,
+            opacity 0.13s ease-in-out, box-shadow 0.13s ease-in-out;
+          user-select: none;
+          -webkit-user-select: none;
+          touch-action: manipulation;
+        }
+
+        button.active {
+          background-color: #dc615b;
+        }
+
+        textarea {
+          resize: none;
+          border-radius: 4px;
+          border: 1px solid #dadada;
+          background-color: #ffffff;
+        }
+
+        h3 {
+          line-height: 14px;
+        }
+
+        input[type="text"] {
+          padding: 8px;
+          border: 1px solid #dadada;
+          background-color: #ffffff;
+          border-radius: 4px;
+          font-size: 11pt;
+        }
+
+        & > .content {
+          display: flex;
+          justify-content: center;
+          flex-direction: column;
+          flex: 1;
+          max-width: 600px;
+          gap: 8px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="content-container">
+      <div class="content">
+        <h3>Time Logger</h3>
+
+        <div style="display: flex; gap: 4px; flex: 1; margin-bottom: 8px">
+          <input
+            id="note-input"
+            type="text"
+            placeholder="Note…"
+            autocapitalize="off"
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+            style="width: 100%"
+          />
+          <button id="toggle-button" onclick="toggle()">Start</button>
+        </div>
+        <textarea id="textarea-log" rows="16"></textarea>
+
+        <br />
+        <b>Totals:</b>
+        <textarea id="textarea-output" rows="10"></textarea>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    const uuidv4 = () => {
+      return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c) =>
+        (
+          +c ^
+          (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (+c / 4)))
+        ).toString(16)
+      );
+    };
+
+    const logOutputEl = document.getElementById("textarea-log");
+    const outputEl = document.getElementById("textarea-output");
+    const noteInputEl = document.getElementById("note-input");
+    const toggleButtonEl = document.getElementById("toggle-button");
+
+    const copy = (text) => {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.top = "0";
+      textArea.style.left = "0";
+      textArea.style.position = "fixed";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand("copy");
+      } catch (err) {
+        console.error("Copying err", err);
+      }
+
+      document.body.removeChild(textArea);
+    };
+
+    const getDateTimeRow = (d) => {
+      const hours = ("0" + d.getHours()).slice(-2);
+      const minutes = ("0" + d.getMinutes()).slice(-2);
+      const year = d.getFullYear();
+      const month = d.getMonth() + 1;
+      const day = d.getDate();
+      const monthPadded = ("0" + month).slice(-2);
+      const dayPadded = ("0" + day).slice(-2);
+      return `${year}-${monthPadded}-${dayPadded} ${hours}:${minutes}`;
+    };
+
+    const hours = {};
+    let currentTimer = {};
+
+    const startTimer = () => {
+      if (currentTimer?.id) return;
+      const startedAt = new Date();
+      const id = uuidv4();
+      currentTimer = { id, startedAt, note: noteInputEl.value };
+      const logMsg = `▶️ ${getDateTimeRow(startedAt)}`;
+      logOutputEl.value = [logOutputEl.value, `${logMsg} ${noteInputEl.value}`]
+        .filter((x) => x)
+        .join("\n");
+    };
+
+    const getDurationRow = (duration, date, note) => {
+      const dateText = date ? `${getDateTimeRow(date).substring(0, 10)}\t` : "";
+
+      const durationDate = new Date(duration);
+      const durationHours = ("0" + durationDate.getUTCHours()).slice(-2);
+      const durationMinutes = ("0" + durationDate.getUTCMinutes()).slice(-2);
+      const durationSeconds = ("0" + durationDate.getUTCSeconds()).slice(-2);
+      const durationText = `${durationHours}:${durationMinutes}:${durationSeconds}`;
+
+      const _note = note ? ` ${note}` : "";
+
+      return `${dateText}${durationText}${_note}`;
+    };
+
+    const getTotalDurations = () => {
+      const durations = Object.values(hours).reduce(
+        (acc, cur) => {
+          acc.total = acc.total + cur.duration;
+          if (cur.note) {
+            acc.subs[cur.note] = (acc.subs[cur.note] || 0) + cur.duration;
+          }
+          return acc;
+        },
+        {
+          total: 0,
+          subs: {},
+        }
+      );
+
+      const today = new Date();
+      const totalDuration = getDurationRow(durations.total, today);
+      const subDurations = Object.entries(durations.subs)
+        .map((x) => {
+          const [k, duration] = x;
+          return getDurationRow(duration, today, k);
+        })
+        .join("\n");
+
+      const out = `${totalDuration}\n------------------------\n${subDurations}`;
+      outputEl.value = out;
+      return out;
+    };
+
+    const endTimer = () => {
+      if (!currentTimer?.id) return;
+      const stoppedAt = new Date();
+      const duration = stoppedAt - currentTimer.startedAt;
+
+      const res = {
+        ...currentTimer,
+        stoppedAt,
+        duration,
+      };
+
+      const durationText = getDurationRow(duration);
+      const logMsg = `⏸️ ${getDateTimeRow(stoppedAt)} ${durationText}`;
+
+      const toLog = [logOutputEl.value, `${logMsg} ${noteInputEl.value}`]
+        .filter((x) => x)
+        .join("\n");
+
+      logOutputEl.value = toLog;
+      hours[currentTimer.id] = res;
+      currentTimer = {};
+
+      const totals = getTotalDurations();
+      copy([totals, toLog].join("\n\n"));
+      noteInputEl.focus();
+    };
+
+    const toggle = () => {
+      if (currentTimer?.id) {
+        toggleButtonEl.innerText = "Start";
+        toggleButtonEl.classList.remove("active");
+        endTimer();
+      } else {
+        toggleButtonEl.innerText = "Stop";
+        toggleButtonEl.classList.add("active");
+        startTimer();
+      }
+    };
+
+    noteInputEl.addEventListener("keyup", (e) => {
+      if (e.key === "Enter") {
+        toggle();
+      }
+    });
+  </script>
+</html>
