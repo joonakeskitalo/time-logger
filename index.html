@@ -89,6 +89,12 @@
             style="width: 100%"
           />
           <button id="toggle-button" onclick="toggle()">Start</button>
+          <button
+            onclick="clearData()"
+            style="background-color: #dadada; color: black"
+          >
+            Clear
+          </button>
         </div>
         <textarea id="textarea-log" rows="16"></textarea>
 
@@ -143,7 +149,7 @@
       return `${year}-${monthPadded}-${dayPadded} ${hours}:${minutes}`;
     };
 
-    const hours = {};
+    let hours = {};
     let currentTimer = {};
 
     const startTimer = () => {
@@ -237,6 +243,7 @@
         toggleButtonEl.classList.add("active");
         startTimer();
       }
+      saveToLocalStorage();
     };
 
     noteInputEl.addEventListener("keyup", (e) => {
@@ -244,5 +251,27 @@
         toggle();
       }
     });
+
+    const saveToLocalStorage = () => {
+      localStorage.setItem("time-logger-hours", JSON.stringify(hours));
+      localStorage.setItem("time-logger-current", JSON.stringify(currentTimer));
+    };
+
+    const clearData = () => {
+      localStorage.removeItem("time-logger-hours");
+      localStorage.removeItem("time-logger-current");
+      logOutputEl.value = "";
+      outputEl.value = "";
+      noteInputEl.value = "";
+    };
+
+    const init = () => {
+      const hoursFromLocalStorage = localStorage.getItem("time-logger-hours");
+      if (!hoursFromLocalStorage) return;
+      hours = JSON.parse(hoursFromLocalStorage);
+      getTotalDurations();
+    };
+
+    init();
   </script>
 </html>
