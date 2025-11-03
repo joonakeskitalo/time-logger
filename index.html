@@ -270,11 +270,16 @@
     const saveToLocalStorage = () => {
       localStorage.setItem("time-logger-hours", JSON.stringify(hours));
       localStorage.setItem("time-logger-current", JSON.stringify(currentTimer));
+      localStorage.setItem(
+        "time-logger-log",
+        JSON.stringify(logOutputEl.value)
+      );
     };
 
     const clearData = () => {
       localStorage.removeItem("time-logger-hours");
       localStorage.removeItem("time-logger-current");
+      localStorage.removeItem("time-logger-log");
       hours = {};
       currentTimer = {};
       logOutputEl.value = "";
@@ -291,6 +296,11 @@
       if (!hoursFromLocalStorage) return;
       hours = JSON.parse(hoursFromLocalStorage);
       getTotalDurations();
+
+      const logText = localStorage.getItem("time-logger-log");
+      if (!logText) return;
+
+      logOutputEl.value = JSON.parse(logText);
     };
 
     init();
