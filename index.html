@@ -275,6 +275,8 @@
     const clearData = () => {
       localStorage.removeItem("time-logger-hours");
       localStorage.removeItem("time-logger-current");
+      hours = {};
+      currentTimer = {};
       logOutputEl.value = "";
       outputEl.value = "";
       noteInputEl.value = "";
