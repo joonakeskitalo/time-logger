@@ -177,6 +177,8 @@
       logOutputEl.value = [logOutputEl.value, `${logMsg} ${noteInputEl.value}`]
         .filter((x) => x)
         .join("\n");
+
+      logOutputEl.scrollTop = logOutputEl.scrollHeight;
     };
 
     const getDurationRow = (duration, date, note) => {
@@ -241,6 +243,7 @@
         .join("\n");
 
       logOutputEl.value = toLog;
+      logOutputEl.scrollTop = logOutputEl.scrollHeight;
       hours[currentTimer.id] = res;
       currentTimer = {};
 
